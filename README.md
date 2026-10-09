@@ -168,19 +168,46 @@ Calling the real function directly:
 
 ## Setting `i18n.baseUrl` is not a fix
 
-Uncommenting `i18n.baseUrl` in `nuxt.config.ts` gives the url an origin, so the
-console error from `nuxt-site-config`'s i18n plugin stops. But `getBaseUrl()` still
-appends `app.baseURL`, so the site url becomes `https://example.com/sub/` — a url
-with a path, which is what issue 3 doubles:
+Uncommenting `i18n.baseUrl` in `nuxt.config.ts` gives the i18n-reported url an
+origin. But `getBaseUrl()` still appends `app.baseURL`, so that url becomes
+`https://example.com/sub/` — an origin *with a path*, which is exactly what issue 3
+doubles.
+
+```sh
+# with i18n.baseUrl: "https://example.com" uncommented in nuxt.config.ts
+NODE_ENV=production NITRO_PRESET=node-server NUXT_SITE_URL=https://example.com/ pnpm build
+NUXT_SITE_URL=https://example.com/ PORT=3202 pnpm preview
+```
+
+Measured in Chromium. SSR is correct, and the payload is unchanged from variant B
+apart from the trailing slash:
 
 ```
-https://example.com/sub/sub/page
+SSR  <link rel="canonical" href="https://example.com/sub/page">
+SSR  <meta property="og:url" content="https://example.com/sub/page">
+payload site config: url "https://example.com"  _priority.url 0
 ```
 
-The host is correct and the path is still wrong. That value was measured on a real
-deployment running these same versions; uncomment the line and rebuild to confirm
-it here.
+The hydrated DOM at `http://localhost:3202/sub/page`:
 
-Setting it does silence the console error above, since the mismatch check compares
-hosts and the i18n url now has one. That makes `i18n.baseUrl` worth setting, but it
-is not the fix for the duplicated base.
+```
+link[rel=canonical]      getAttribute("href")  https://example.com/sub/sub/page
+meta[property="og:url"]  content               https://example.com/sub/sub/page
+link[rel=canonical]      .href (resolved)      https://example.com/sub/sub/page
+```
+
+The host is correct and the path is still doubled. Setting `i18n.baseUrl` moves the
+broken value from `https:///sub/sub/page` to `https://example.com/sub/sub/page`; it
+does not stop the duplication, because the duplication happens after the origin has
+been resolved.
+
+What it does fix is the console. The load is clean — the
+`[Nuxt Site Config] Your I18n baseUrl ...` error is gone, because the mismatch check
+compares hosts and the i18n url now has one. The error going quiet is therefore not
+a signal that the url is right: here it goes quiet while the canonical is still
+wrong, which is the misleading combination to watch for.
+
+So `i18n.baseUrl` is worth setting, but it is not the fix for the duplicated base.
+On a real deployment running these versions, stopping the duplication took two
+pieces together: a plugin pushing *only the origin* into site config at a priority
+above i18n's, plus `i18n.baseUrl` set to that same origin.
