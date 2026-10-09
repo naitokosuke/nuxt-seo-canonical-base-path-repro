@@ -75,18 +75,31 @@ Then read the hydrated DOM in a browser at `http://localhost:3201/sub/page`:
 document.querySelector('link[rel=canonical]').getAttribute("href");
 ```
 
-Measured — the server sent the right url and the client replaced it:
+Measured in Chromium — the server sent the right url and the client replaced it:
 
 ```
-https:///sub/sub/page
+link[rel=canonical]      getAttribute("href")  https:///sub/sub/page
+meta[property="og:url"]  content               https:///sub/sub/page
+link[rel=canonical]      .href (resolved)      https://sub/sub/page
 ```
 
-This is the shape that reaches production: correct in the HTML, wrong in the live
-DOM, so `curl` and crawlers that do not execute JS never see it, while anything
-reading the live `og:url` does.
+The empty host is not ignored. The browser resolves the first path segment as the
+host, so the live `og:url` points at a host named `sub`. The console also carries,
+on every load:
 
-Whether the wrong value reaches the DOM can vary by browser; this was measured in
-Chromium, and the same divergence was observed in Safari on a real deployment.
+```
+[Nuxt Site Config] Your I18n baseUrl `` doesn't match your site url example.com.
+```
+
+This is the shape that reaches production: right in the HTML, wrong in the live
+DOM. `curl` and crawlers that do not execute JS never see it, while anything
+reading the live `og:url` — a share sheet, an in-page copy button — does.
+
+Read the live DOM, and do not let one browser's first-load reading settle it. On a
+real deployment running these versions, Chromium showed the *correct* value on
+first load while Safari showed the broken one; in this reproduction Chromium shows
+the broken value directly. The HTML is right in both cases, so it tells you
+nothing.
 
 ## Root cause
 
@@ -168,8 +181,6 @@ The host is correct and the path is still wrong. That value was measured on a re
 deployment running these same versions; uncomment the line and rebuild to confirm
 it here.
 
-Note that this can make things look *better* than they are in Chromium: without
-`i18n.baseUrl` the hydrated value is the syntactically invalid `https:///sub/...`,
-which Chromium did not surface on first load, whereas the valid-but-wrong
-`https://example.com/sub/sub/...` shows up immediately. Checking in only one
-browser, before and after, can therefore point the wrong way.
+Setting it does silence the console error above, since the mismatch check compares
+hosts and the i18n url now has one. That makes `i18n.baseUrl` worth setting, but it
+is not the fix for the duplicated base.
