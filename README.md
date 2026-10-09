@@ -22,7 +22,7 @@ host, so the live `og:url` points at a host named `sub`.
 | `nuxt-site-config` | 3.2.21 |
 | `site-config-stack` | 3.2.21 |
 | `@nuxtjs/i18n` | 10.4.0 |
-| Node | 24.14.0 |
+| Node | 24.x |
 
 Both faulty code paths below are unchanged in `nuxt-site-config` /
 `site-config-stack` 4.2.3, so upgrading does not help.
@@ -74,9 +74,9 @@ Console, on every load:
 [Nuxt Site Config] Your I18n baseUrl `` doesn't match your site url example.com.
 ```
 
-Read the live DOM, not the HTML, and in more than one browser: on a real deployment
-running these versions Chromium showed the correct value on first load while Safari
-showed the broken one.
+Read the live DOM, not the HTML, and in more than one browser. Chromium shows the
+broken value immediately here, but on a real deployment running these versions it
+showed the correct value on first load while Safari showed the broken one.
 
 ## Root cause
 
