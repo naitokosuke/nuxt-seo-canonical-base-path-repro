@@ -69,15 +69,24 @@ hydration:
 payload site config: url "https://example.com/"  _priority.url 0
 ```
 
-Then check the hydrated DOM in a browser at `http://localhost:3201/sub/page`:
+Then read the hydrated DOM in a browser at `http://localhost:3201/sub/page`:
 
 ```js
 document.querySelector('link[rel=canonical]').getAttribute("href");
-document.querySelector('meta[property="og:url"]').getAttribute("content");
 ```
 
-Whether the wrong value reaches the DOM varies by browser, so check in Safari as
-well as Chromium.
+Measured — the server sent the right url and the client replaced it:
+
+```
+https:///sub/sub/page
+```
+
+This is the shape that reaches production: correct in the HTML, wrong in the live
+DOM, so `curl` and crawlers that do not execute JS never see it, while anything
+reading the live `og:url` does.
+
+Whether the wrong value reaches the DOM can vary by browser; this was measured in
+Chromium, and the same divergence was observed in Safari on a real deployment.
 
 ## Root cause
 
@@ -155,6 +164,12 @@ with a path, which is what issue 3 doubles:
 https://example.com/sub/sub/page
 ```
 
-The host is correct and the path is still wrong. In Chromium this can make things
-look worse rather than better, since the previously invalid (and therefore ignored)
-value becomes a syntactically valid wrong one.
+The host is correct and the path is still wrong. That value was measured on a real
+deployment running these same versions; uncomment the line and rebuild to confirm
+it here.
+
+Note that this can make things look *better* than they are in Chromium: without
+`i18n.baseUrl` the hydrated value is the syntactically invalid `https:///sub/...`,
+which Chromium did not surface on first load, whereas the valid-but-wrong
+`https://example.com/sub/sub/...` shows up immediately. Checking in only one
+browser, before and after, can therefore point the wrong way.
