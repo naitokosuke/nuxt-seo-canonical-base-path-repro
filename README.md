@@ -24,11 +24,9 @@ host `sub`, so the live `og:url` points at an unrelated host.
 | `@nuxtjs/i18n` | 10.6.0 |
 | Node | 24.x |
 
-These are the current latest of each at the time of writing. The SSR and payload
-values below were measured on them. The hydrated-DOM values were measured on the
-previous pin (`@nuxtjs/seo` 3.4.0, `nuxt-site-config` 3.2.21) and are pending a
-re-read here; the client-side mechanism is unchanged, and `_priority.url` still
-serializes as `0` on 4.2.3.
+These are the current latest of each at the time of writing, and every value below
+was measured on them. The same values were measured on `@nuxtjs/seo` 3.4.0 /
+`nuxt-site-config` 3.2.21, so this is not a regression in the 4.x line.
 
 ## The documented config: the SSR HTML is already wrong
 
@@ -76,7 +74,6 @@ Hydrated DOM at `http://localhost:3201/sub/page`, measured in Chromium:
 ```
 link[rel=canonical]      getAttribute("href")  https:///sub/sub/page
 meta[property="og:url"]  content               https:///sub/sub/page
-link[rel=canonical]      .href (resolved)      https://sub/sub/page
 ```
 
 Console, on every load:
